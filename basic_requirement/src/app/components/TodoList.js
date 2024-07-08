@@ -1,9 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 const TodoList = () => {
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState('');
+
+
+  useEffect(() => {
+    const fetchTodos = async () => {
+      const response = await fetch('/api/todo');
+      const data = await response.json();
+      setTodos(data);
+    };
+
+    fetchTodos();
+  }, []);
+
+  
 
   const handleAddTodo = (e) => {
     if (e.key === 'Enter' && input.trim() !== '') {
