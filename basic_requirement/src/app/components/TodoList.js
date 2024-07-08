@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 const TodoList = () => {
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState('');
-
+  const [editId, setEditId] = useState(null);
+  const [filter, setFilter] = useState('');
 
   useEffect(() => {
     const fetchTodos = async () => {
@@ -17,29 +18,45 @@ const TodoList = () => {
   }, []);
 
 
-
-  const handleAddTodo = (e) => {
-  if (e.key === 'Enter' && input.trim() !== '') {
-    if (!todos.some(todo => todo.todo === input.trim())) {
-      setTodos([...todos, { id: uuidv4(), todo: input.trim(), isCompleted: false, createdAt: new Date() }]);
-      setInput('');
-    } else {
-      alert('Duplicate todo item!');
+  const handleAddTodo = async (e) => {
+    if (e.key === 'Enter' && input.trim() !== '') {
+      if (!todos.some(todo => todo.todo === input.trim())) {
+        const newTodo = { id: uuidv4(), todo: input.trim(), isCompleted: false, createdAt: new Date().toISOString() };
+        const response = await fetch('/api/todo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newTodo),
+        });
+        if (response.ok) {
+          setTodos([...todos, newTodo]);
+          setInput('');
+        }
+      } else {
+        alert('Duplicate todo item!');
+      }
     }
+  };
+
+
+  const handleRemoveTodo = async (id) => {
+    const response = await fetch(`/api/todo/${id}`, { method: 'DELETE' });
+    if (response.ok) {
+      setTodos(todos.filter(todo => todo.id !== id));
+    }
+  };
+
+const handleEditTodo = async (id, newTodo) => {
+  const updatedTodo = { ...todos.find(todo => todo.id === id), todo: newTodo };
+  const response = await fetch(`/api/todo`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updatedTodo),
+  });
+  if (response.ok) {
+    setTodos(todos.map(todo => todo.id === id ? updatedTodo : todo));
+    setEditId(null);
+    setInput('');
   }
-};
-
-
-const handleRemoveTodo = (id) => {
-  setTodos(todos.filter(todo => todo.id !== id));
-};
-
-const [editId, setEditId] = useState(null);
-
-const handleEditTodo = (id, newTodo) => {
-  setTodos(todos.map(todo => todo.id === id ? { ...todo, todo: newTodo } : todo));
-  setEditId(null);
-  setInput('');
 };
 
 const handleStartEdit = (id, currentTodo) => {
@@ -57,13 +74,21 @@ const handleKeyDown = (e) => {
   }
 };
 
-const [filter, setFilter] = useState('');
-
 const filteredTodos = todos.filter(todo => todo.todo.toLowerCase().includes(filter.toLowerCase()));
 
-const handleToggleComplete = (id) => {
-  setTodos(todos.map(todo => todo.id === id ? { ...todo, isCompleted: !todo.isCompleted } : todo));
+const handleToggleComplete = async (id) => {
+  const updatedTodo = { ...todos.find(todo => todo.id === id), isCompleted: !todos.find(todo => todo.id === id).isCompleted };
+  const response = await fetch(`/api/todo`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updatedTodo),
+  });
+  if (response.ok) {
+    setTodos(todos.map(todo => todo.id === id ? updatedTodo : todo));
+  }
 };
+
+
 
 return (
   <div>
